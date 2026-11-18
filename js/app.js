@@ -38,17 +38,9 @@
     timer = setTimeout(() => runner.run({ ...config }), 55);
   }
 
-  function receive(data) {
-    result = { ...data, config: { ...config } };
-    status(config.regime === "free"
-      ? "Свободный электрон · все щели закрыты."
-      : config.regime === "isolated"
-        ? "Изолированная яма · ширина каждой зоны равна нулю."
-        : "Готово · показаны первые пять энергетических зон.");
-    const rows = data.edges.map(({ min, max }, i) => {
+  function renderRows(id, values) {
+    const rows = values.map(cells => {
       const tr = document.createElement("tr");
-      const cells = [i + 1, number(min, 5), number(max, 5), number(max - min, 5),
-        i < data.gaps.length ? number(data.gaps[i], 5) : "—"];
       for (const value of cells) {
         const td = document.createElement("td");
         td.textContent = value;
@@ -56,7 +48,24 @@
       }
       return tr;
     });
-    byId("band-values").replaceChildren(...rows);
+    byId(id).replaceChildren(...rows);
+  }
+
+  function receive(data) {
+    result = { ...data, config: { ...config } };
+    status(config.regime === "free"
+      ? "Свободный электрон · все щели закрыты."
+      : config.regime === "isolated"
+        ? "Изолированная яма · ширина каждой зоны равна нулю."
+        : "Готово · показаны первые пять энергетических зон.");
+    renderRows("band-values", data.edges.map(({ min, max }, i) => [
+      i + 1, number(min, 5), number(max, 5), number(max - min, 5),
+      i < data.gaps.length ? number(data.gaps[i], 5) : "—",
+    ]));
+    byId("grid-check").hidden = !data.gridComparison.length;
+    renderRows("grid-values", data.gridComparison.map(({ intervals, firstGap, maxError }) => [
+      intervals, number(firstGap, 9), number(maxError, 9),
+    ]));
     redraw();
   }
 

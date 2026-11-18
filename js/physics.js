@@ -3,6 +3,7 @@
 
   const KINETIC = 0.0380998212; // ℏ² / (2mₑ), eV·nm²
   const BAND_COUNT = 5;
+  const GRID_SIZES = [192, 384, 768];
 
   // The propagator is [[C, S], [-q² S, C]]. For an evanescent
   // segment divide every matrix element by exp(z) before matching.
@@ -99,6 +100,13 @@
       .sort((x, y) => x - y).slice(0, BAND_COUNT);
   }
 
+  function edgeLimits(center, boundary) {
+    return center.map((value, i) => ({
+      min: Math.min(value, boundary[i]),
+      max: Math.max(value, boundary[i]),
+    }));
+  }
+
   function spectrum(a, c, height, regime) {
     if (regime === "isolated") {
       const levels = Array.from({ length: BAND_COUNT }, (_, i) => KINETIC * ((i + 1) * Math.PI / a) ** 2);
@@ -108,7 +116,7 @@
       const center = free(c, 0);
       const boundary = free(c, 1);
       return {
-        edges: center.map((value, i) => ({ min: Math.min(value, boundary[i]), max: Math.max(value, boundary[i]) })),
+        edges: edgeLimits(center, boundary),
         at: k => free(c, k),
       };
     }
@@ -131,6 +139,49 @@
     return edges.slice(1).map(({ min }, i) => Math.max(0, min - edges[i].max));
   }
 
+  function gridEdges(a, c, height, intervals) {
+    const dx = c / intervals;
+    const kinetic = KINETIC / dx ** 2;
+    const half = intervals / 2;
+    const diagonal = Float64Array.from({ length: half + 1 }, (_, i) => {
+      const left = Math.max(0, (i - 0.5) * dx);
+      const right = Math.min(c / 2, (i + 0.5) * dx);
+      const barrierFraction = Math.max(0, right - Math.max(left, a / 2)) / (right - left);
+      return 2 * kinetic + height * barrierFraction;
+    });
+
+    function halfSpectrum(leftNeumann, rightNeumann) {
+      // Dirichlet omits an endpoint. Reflecting a ghost node at a Neumann
+      // endpoint gives sqrt(2) times the usual off-diagonal after symmetrizing.
+      const first = leftNeumann ? 0 : 1;
+      const last = rightNeumann ? half : half - 1;
+      const offSquared = new Float64Array(last - first + 1).fill(kinetic ** 2);
+      offSquared[0] = 0;
+      if (leftNeumann) offSquared[1] *= 2;
+      if (rightNeumann) offSquared[offSquared.length - 1] *= 2;
+
+      function countBelow(energy) {
+        let pivot = 1;
+        let count = 0;
+        for (let i = first; i <= last; i++) {
+          pivot = diagonal[i] - energy - offSquared[i - first] / pivot;
+          if (Math.abs(pivot) < kinetic * Number.EPSILON) pivot = -kinetic * Number.EPSILON;
+          if (pivot < 0) count++;
+        }
+        return count;
+      }
+
+      return Array.from({ length: BAND_COUNT }, (_, i) => bisect(
+        energy => countBelow(energy) <= i ? 1 : -1, -1, 4 * kinetic + height + 1, true,
+      ));
+    }
+
+    const ordered = (first, second) => [...first, ...second].sort((x, y) => x - y).slice(0, BAND_COUNT);
+    const periodic = ordered(halfSpectrum(true, true), halfSpectrum(false, false));
+    const antiperiodic = ordered(halfSpectrum(true, false), halfSpectrum(false, true));
+    return edgeLimits(periodic, antiperiodic);
+  }
+
   function solve({ a, c, height, regime }) {
     if (![a, c, height].every(Number.isFinite) || !(a > 0 && c > a && height >= 0)) {
       throw new Error("Требуется 0 < a < c и U ≥ 0.");
@@ -151,7 +202,14 @@
     const sweep = sweepHeights.map(u => [
       u, gaps(regime === "finite" && Math.abs(u - height) < 1e-10 ? edges : spectrum(a, c, u, "finite").edges),
     ]);
-    return { bands, edges, gaps: gaps(edges), sweep, maxHeight };
+    const gridComparison = regime === "isolated" ? [] : GRID_SIZES.map(intervals => {
+      const numerical = gridEdges(a, c, regime === "free" ? 0 : height, intervals);
+      const maxError = Math.max(...numerical.map(({ min, max }, i) => (
+        Math.max(Math.abs(min - edges[i].min), Math.abs(max - edges[i].max))
+      )));
+      return { intervals, firstGap: gaps(numerical)[0], maxError };
+    });
+    return { bands, edges, gaps: gaps(edges), sweep, maxHeight, gridComparison };
   }
 
   globalThis.Simulation = { solve };

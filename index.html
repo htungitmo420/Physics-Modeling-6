@@ -37,6 +37,14 @@
           <figcaption><h2>Ширина щелей при изменении U</h2><span class="legend" id="gap-legend"></span></figcaption>
           <canvas class="medium" id="gaps" role="img" aria-label="Зависимость ширины трёх первых щелей от высоты барьера"></canvas>
         </figure>
+        <section class="card results" id="grid-check" hidden>
+          <h2>Проверка методом конечных разностей</h2>
+          <p class="hint">Сравниваем границы первых пяти зон с результатом метода матриц переноса.</p>
+          <table>
+            <thead><tr><th scope="col">Шагов на период</th><th scope="col">Первая щель, эВ</th><th scope="col">Макс. разница по границам, эВ</th></tr></thead>
+            <tbody id="grid-values"></tbody>
+          </table>
+        </section>
       </section>
       <aside class="card controls">
         <h2>Параметры решётки</h2>
