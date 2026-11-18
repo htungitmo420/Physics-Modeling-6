@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>Модель Кронига–Пенни</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="js/physics.js"></script>
+  <script defer src="js/charts.js"></script>
+  <script defer src="js/app.js"></script>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Модель Кронига–Пенни</h1>
+      <p>Энергетические зоны электрона в одномерном кристалле.</p>
+    </header>
+    <div class="layout">
+      <section class="visuals" aria-label="Результаты моделирования">
+        <figure class="card figure">
+          <figcaption><h2>Периодический потенциал V(x)</h2><span class="legend" id="cell-info"></span></figcaption>
+          <canvas id="potential" role="img" aria-label="График потенциала трёх соседних ячеек"></canvas>
+        </figure>
+        <figure class="card figure">
+          <figcaption><h2>Зонная структура E(k)</h2><span class="legend">Закрашены запрещённые зоны</span></figcaption>
+          <canvas class="tall" id="bands" role="img" aria-label="Энергетические зоны в первой зоне Бриллюэна"></canvas>
+        </figure>
+        <section class="card results">
+          <h2>Границы зон и ширина щелей</h2>
+          <table>
+            <thead><tr><th scope="col">Зона</th><th scope="col">Мин., эВ</th><th scope="col">Макс., эВ</th><th scope="col">Ширина, эВ</th><th scope="col">Щель выше, эВ</th></tr></thead>
+            <tbody id="band-values"></tbody>
+          </table>
+        </section>
+        <figure class="card figure">
+          <figcaption><h2>Ширина щелей при изменении U</h2><span class="legend" id="gap-legend"></span></figcaption>
+          <canvas class="medium" id="gaps" role="img" aria-label="Зависимость ширины трёх первых щелей от высоты барьера"></canvas>
+        </figure>
+      </section>
+      <aside class="card controls">
+        <h2>Параметры решётки</h2>
+        <form id="controls">
+          <div class="field">
+            <span class="field-label" id="regime-label">Режим</span>
+            <div class="presets" role="group" aria-labelledby="regime-label">
+              <button type="button" data-regime="free" aria-pressed="false">Свободный</button>
+              <button type="button" data-regime="finite" aria-pressed="true">Конечный барьер</button>
+              <button type="button" data-regime="isolated" aria-pressed="false">Изолированная яма</button>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-top"><label for="a">Ширина ямы a</label><output for="a" id="a-value"></output></div>
+            <input type="range" id="a" min="0.35" max="2.75" step="0.01" value="1">
+          </div>
+          <div class="field">
+            <div class="field-top"><label for="c">Период решётки c</label><output for="c" id="c-value"></output></div>
+            <input type="range" id="c" min="0.45" max="4" step="0.01" value="1.5">
+          </div>
+          <div class="field">
+            <div class="field-top"><label for="height">Высота барьера U</label><output for="height" id="height-value"></output></div>
+            <input type="range" id="height" min="0" max="15" step="0.05" value="2.5">
+          </div>
+          <p class="hint">Масса частицы равна массе электрона. При U → ∞ зоны сжимаются до уровней отдельной ямы.</p>
+          <div class="actions"><button type="button" id="reset">Сбросить</button></div>
+        </form>
+        <p class="status" id="status" role="status">Выполняется расчёт…</p>
+      </aside>
+    </div>
+    <footer><a href="REPORT.md">Метод расчёта и проверка</a></footer>
+  </main>
+</body>
+</html>
